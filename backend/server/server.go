@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -30,14 +29,50 @@ func main() {
 			log.Print(err)
 			continue
 		}
+
+		// input := bufio.NewScanner(conn)
+		// messages <- input.Text()
+
 		go handleConn(conn)
-		go servMsg(conn)
+		// go servMsg(conn)
+		go servMsg()
 
 	}
 }
 
-func servMsg(conn net.Conn) {
-	io.Copy(conn, os.Stdin)
+// func servMsg(conn net.Conn) {
+// 	reader := bufio.NewReader(os.Stdin)
+// 	msg, err := reader.ReadString('\n')
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+// 	messages <- msg
+// 	conn.Close()
+// }
+
+// func servMsg(conn net.Conn) {
+// 	input := bufio.NewScanner(os.Stdin)
+// 	messages <- input.Text()
+// 	conn.Close()
+// }
+
+func servMsg() {
+	clients := make(map[client]bool)
+	reader := bufio.NewReader(os.Stdin)
+	premsg, err := reader.ReadString('\n')
+	if err != nil {
+		log.Println(err)
+	}
+	messages <- premsg
+
+	for {
+		select {
+		case msg := <-messages:
+			for cli := range clients {
+				cli <- msg
+			}
+		}
+	}
 }
 
 func broadcaster() {
