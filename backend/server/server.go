@@ -23,55 +23,26 @@ func main() {
 	}
 
 	go broadcaster()
+	go servMsg()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Print(err)
 			continue
 		}
-
-		// input := bufio.NewScanner(conn)
-		// messages <- input.Text()
-
 		go handleConn(conn)
-		// go servMsg(conn)
-		go servMsg()
-
 	}
 }
 
-// func servMsg(conn net.Conn) {
-// 	reader := bufio.NewReader(os.Stdin)
-// 	msg, err := reader.ReadString('\n')
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-// 	messages <- msg
-// 	conn.Close()
-// }
-
-// func servMsg(conn net.Conn) {
-// 	input := bufio.NewScanner(os.Stdin)
-// 	messages <- input.Text()
-// 	conn.Close()
-// }
-
+// func servMsg - функция для отправки сообщений клиентам
 func servMsg() {
-	clients := make(map[client]bool)
-	reader := bufio.NewReader(os.Stdin)
-	premsg, err := reader.ReadString('\n')
-	if err != nil {
-		log.Println(err)
-	}
-	messages <- premsg
-
 	for {
-		select {
-		case msg := <-messages:
-			for cli := range clients {
-				cli <- msg
-			}
+		reader := bufio.NewReader(os.Stdin)
+		srvmsg, err := reader.ReadString('\n')
+		if err != nil {
+			log.Println(err)
 		}
+		messages <- srvmsg
 	}
 }
 
@@ -82,6 +53,7 @@ func broadcaster() {
 		select {
 		case msg := <-messages:
 			for cli := range clients {
+				fmt.Println(msg)
 				cli <- msg
 			}
 
@@ -100,6 +72,7 @@ func handleConn(conn net.Conn) {
 	go clientWriter(conn, ch)
 
 	who := conn.RemoteAddr().String()
+	fmt.Println(who)
 	ch <- "You are " + who
 	messages <- who + " has arrived"
 	entering <- ch
