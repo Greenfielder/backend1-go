@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -24,6 +23,7 @@ func main() {
 	}
 
 	go broadcaster()
+	go servMsg()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -31,13 +31,19 @@ func main() {
 			continue
 		}
 		go handleConn(conn)
-		go servMsg(conn)
-
 	}
 }
 
-func servMsg(conn net.Conn) {
-	io.Copy(conn, os.Stdin)
+// func servMsg - функция для отправки сообщений клиентам
+func servMsg() {
+	for {
+		reader := bufio.NewReader(os.Stdin)
+		srvmsg, err := reader.ReadString('\n')
+		if err != nil {
+			log.Println(err)
+		}
+		messages <- srvmsg
+	}
 }
 
 func broadcaster() {
@@ -47,6 +53,7 @@ func broadcaster() {
 		select {
 		case msg := <-messages:
 			for cli := range clients {
+				fmt.Println(msg)
 				cli <- msg
 			}
 
@@ -65,6 +72,7 @@ func handleConn(conn net.Conn) {
 	go clientWriter(conn, ch)
 
 	who := conn.RemoteAddr().String()
+	fmt.Println(who)
 	ch <- "You are " + who
 	messages <- who + " has arrived"
 	entering <- ch
